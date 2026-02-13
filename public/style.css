@@ -1,92 +1,48 @@
+:root {
+  --board-border: #1f6f54;
+  --light-sq: #b7e4c7;
+  --dark-sq: #40916c;
+  --accent: #ffd60a;
+}
+
 body {
-  margin: 0;
-  padding: 0;
-  background: #0f3d2e;
-  color: #ffffff;
-  font-family: Arial, Helvetica, sans-serif;
-  text-align: center;
+  margin: 0; background: #0b2b21; color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex; flex-direction: column; align-items: center;
 }
 
-/* Top bar */
-#top-bar {
-  background: #134e3a;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
+/* Layout Containers */
+.game-wrapper {
+  display: flex; gap: 30px; margin-top: 20px; align-items: flex-start;
 }
 
-#roomLink {
-  width: 65%;
-  padding: 5px;
-  font-size: 14px;
-}
-
-/* Status text */
-#status {
-  margin: 10px;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-/* Chess board */
 #board {
-  display: grid;
-  grid-template-columns: repeat(8, 70px);
-  width: 560px;
-  margin: 20px auto;
-  border: 6px solid #1f6f54;
+  display: grid; grid-template-columns: repeat(8, 65px);
+  width: 520px; border: 8px solid var(--board-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* Board squares */
+/* Squares & Pieces */
 .square {
-  width: 70px;
-  height: 70px;
-  font-size: 42px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
+  width: 65px; height: 65px; font-size: 45px;
+  display: flex; justify-content: center; align-items: center;
+  cursor: pointer; transition: 0.2s;
 }
+.light { background: var(--light-sq); color: #2d5a44; }
+.dark { background: var(--dark-sq); color: #b7e4c7; }
+.highlight { box-shadow: inset 0 0 0 5px var(--accent); }
 
-.light {
-  background: #b7e4c7;
+/* Side Panels (Captured Pieces) */
+.player-panel {
+  width: 150px; background: #134e3a; padding: 15px;
+  border-radius: 8px; border: 2px solid transparent;
 }
+.active-turn { border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
+.graveyard { font-size: 24px; min-height: 50px; margin-top: 10px; display: flex; flex-wrap: wrap; }
 
-.dark {
-  background: #40916c;
-}
-
-.highlight {
-  box-shadow: inset 0 0 0 4px #ffd60a;
-}
-
-/* Captured pieces */
-#captured {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 10px;
-  font-size: 26px;
-}
-
-/* Chat */
+/* Chat Box */
 #chat {
-  position: fixed;
-  right: 10px;
-  top: 60px;
-  width: 220px;
-  background: #134e3a;
-  border: 2px solid #1f6f54;
-  padding: 10px;
+  width: 250px; background: #134e3a; padding: 10px; border-radius: 8px;
 }
-
-#chat ul {
-  list-style: none;
-  padding: 0;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-#chat input {
-  width: 90%;
-}
+#messages { height: 300px; overflow-y: auto; list-style: none; padding: 0; text-align: left; background: #0b2b21; margin-bottom: 5px; }
+#messages li { padding: 5px; border-bottom: 1px solid #1f6f54; font-size: 14px; }
