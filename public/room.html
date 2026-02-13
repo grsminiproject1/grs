@@ -1,33 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Chess Room</title>
     <link rel="stylesheet" href="/style.css">
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 </head>
 <body>
-    <div id="status">Waiting for players...</div>
+    <div id="top-bar" style="padding:10px;">
+        <input id="roomLink" readonly style="width:300px;">
+        <span id="status">Connecting...</span>
+    </div>
 
-    <div class="main-container">
+    <div class="main-game-container">
         <div id="side-b" class="side-panel">
-            <h3 id="name-b">Black</h3>
-            <p>Captured:</p>
+            <h3 id="name-b">Waiting for Black...</h3>
             <div id="capBlack" class="graveyard"></div>
         </div>
 
         <div id="board"></div>
 
         <div id="side-w" class="side-panel">
-            <h3 id="name-w">White</h3>
-            <p>Captured:</p>
+            <h3 id="name-w">Waiting for White...</h3>
             <div id="capWhite" class="graveyard"></div>
         </div>
     </div>
 
     <div id="chat-container">
-        <ul id="messages"></ul>
-        <input id="msg" placeholder="Chat here...">
-        <button onclick="socket.emit('chat', msg.value); msg.value=''">Send</button>
+        <div id="messages"></div>
+        <div style="display:flex;">
+            <input id="msgInput" placeholder="Type a message..." style="flex:1;">
+            <button onclick="sendChat()">Send</button>
+        </div>
     </div>
 
     <script src="/game.js"></script>
