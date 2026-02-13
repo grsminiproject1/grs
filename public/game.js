@@ -1,52 +1,52 @@
 const socket = io();
 const game = new Chess();
-const room = location.pathname.split("/")[2];
+const room = window.location.pathname.split("/")[2];
 
-let myName = "";
-let players = { w: "Waiting...", b: "Waiting..." };
+// UI Elements
+const boardDiv = document.getElementById("board");
+const statusDiv = document.getElementById("status");
+const roomLinkInput = document.getElementById("roomLink");
+const msgInput = document.getElementById("msgInput");
+const messagesDiv = document.getElementById("messages");
+
 let selectedSquare = null;
 let validMoves = [];
+let myName = prompt("Enter your name:") || "Player";
 
+// Share link
+roomLinkInput.value = window.location.href;
+
+// Symbols Map
 const symbols = {
     p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
     P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
 };
 
-// Handle Name Entry
-window.onload = () => {
-    myName = prompt("Enter your name:") || "Player";
-    socket.emit("joinRoom", { room, name: myName });
-};
+socket.emit("joinRoom", { room, name: myName });
 
-socket.on("playerUpdate", (data) => {
-    players = data;
-    updateUI();
-});
+// --- GAME LOGIC ---
 
 function drawBoard() {
-    const boardDiv = document.getElementById("board");
     boardDiv.innerHTML = "";
-    
-    // Use the engine's board state to fix missing pieces
-    const boardState = game.board(); 
+    const currentBoard = game.board();
 
-    boardState.forEach((row, r) => {
+    currentBoard.forEach((row, r) => {
         row.forEach((piece, c) => {
             const sq = document.createElement("div");
             const squareName = String.fromCharCode(97 + c) + (8 - r);
-            sq.className = `square ${(r + c) % 2 === 0 ? "light" : "dark"}`;
             
+            sq.className = `square ${(r + c) % 2 === 0 ? "light" : "dark"}`;
             if (validMoves.includes(squareName)) sq.classList.add("highlight");
 
             if (piece) {
-                sq.textContent = symbols[piece.color === "w" ? piece.type.toUpperCase() : piece.type];
+                sq.textContent = symbols[piece.color === 'w' ? piece.type.toUpperCase() : piece.type];
             }
 
             sq.onclick = () => onSquareClick(squareName);
             boardDiv.appendChild(sq);
         });
     });
-    updateUI();
+    updateStatus();
 }
 
 function onSquareClick(square) {
@@ -59,7 +59,7 @@ function onSquareClick(square) {
         const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
         if (move) {
             socket.emit("move", { fen: game.fen(), lastMove: move });
-            addCapturedPiece(move);
+            handleCaptures(move);
         }
         selectedSquare = null;
         validMoves = [];
@@ -67,29 +67,48 @@ function onSquareClick(square) {
     drawBoard();
 }
 
-function addCapturedPiece(move) {
+function handleCaptures(move) {
     if (!move.captured) return;
-    // If white moves, black piece is captured
-    const side = move.color === 'w' ? 'capWhite' : 'capBlack';
+    const targetId = move.color === 'w' ? 'capWhite' : 'capBlack';
     const symbol = symbols[move.color === 'w' ? move.captured : move.captured.toUpperCase()];
-    document.getElementById(side).innerHTML += `<span>${symbol}</span>`;
+    document.getElementById(targetId).innerHTML += `<span>${symbol}</span>`;
 }
 
-function updateUI() {
+function updateStatus() {
     const turn = game.turn();
-    document.getElementById("name-w").innerText = players.w;
-    document.getElementById("name-b").innerText = players.b;
-    document.getElementById("status").innerText = `${turn === 'w' ? players.w : players.b}'s Turn`;
-    
-    // Highlight side panel of whose turn it is
-    document.getElementById("side-w").classList.toggle("active-turn", turn === 'w');
-    document.getElementById("side-b").classList.toggle("active-turn", turn === 'b');
+    statusDiv.innerText = `${turn === 'w' ? "White" : "Black"}'s Turn`;
+    document.getElementById("side-w").classList.toggle("active", turn === 'w');
+    document.getElementById("side-b").classList.toggle("active", turn === 'b');
 }
+
+// --- NETWORK LOGIC ---
+
+socket.on("playerUpdate", (players) => {
+    document.getElementById("name-w").innerText = players.w || "Waiting...";
+    document.getElementById("name-b").innerText = players.b || "Waiting...";
+});
 
 socket.on("move", (data) => {
     game.load(data.fen);
-    if(data.lastMove) addCapturedPiece(data.lastMove);
+    if (data.lastMove) handleCaptures(data.lastMove);
     drawBoard();
+});
+
+// --- CHAT LOGIC ---
+
+function sendChat() {
+    const text = msgInput.value;
+    if (text) {
+        socket.emit("chat", text);
+        msgInput.value = "";
+    }
+}
+
+socket.on("chat", (msg) => {
+    const p = document.createElement("p");
+    p.innerText = msg;
+    messagesDiv.appendChild(p);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 });
 
 drawBoard();
