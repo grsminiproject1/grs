@@ -1,48 +1,49 @@
-:root {
-  --board-border: #1f6f54;
-  --light-sq: #b7e4c7;
-  --dark-sq: #40916c;
-  --accent: #ffd60a;
-}
-
 body {
-  margin: 0; background: #0b2b21; color: white;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  display: flex; flex-direction: column; align-items: center;
+    margin: 0; background: #0b2b21; color: white;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column; align-items: center;
 }
 
-/* Layout Containers */
-.game-wrapper {
-  display: flex; gap: 30px; margin-top: 20px; align-items: flex-start;
+#status {
+    margin: 20px; font-size: 24px; font-weight: bold; color: #ffd60a;
 }
 
+.main-container {
+    display: flex; align-items: flex-start; gap: 20px;
+}
+
+/* Side Panels for Names and Captured Pieces */
+.side-panel {
+    width: 140px; background: #134e3a; padding: 15px;
+    border-radius: 8px; border: 2px solid transparent;
+    min-height: 400px;
+}
+
+.active-turn { border-color: #ffd60a; box-shadow: 0 0 15px #ffd60a; }
+
+.graveyard {
+    display: flex; flex-wrap: wrap; font-size: 28px; margin-top: 10px;
+}
+
+/* Chess Board - Wood Aesthetic */
 #board {
-  display: grid; grid-template-columns: repeat(8, 65px);
-  width: 520px; border: 8px solid var(--board-border);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: grid; grid-template-columns: repeat(8, 70px);
+    border: 8px solid #3e2723; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* Squares & Pieces */
 .square {
-  width: 65px; height: 65px; font-size: 45px;
-  display: flex; justify-content: center; align-items: center;
-  cursor: pointer; transition: 0.2s;
+    width: 70px; height: 70px; display: flex;
+    justify-content: center; align-items: center;
+    font-size: 48px; cursor: pointer; user-select: none;
 }
-.light { background: var(--light-sq); color: #2d5a44; }
-.dark { background: var(--dark-sq); color: #b7e4c7; }
-.highlight { box-shadow: inset 0 0 0 5px var(--accent); }
 
-/* Side Panels (Captured Pieces) */
-.player-panel {
-  width: 150px; background: #134e3a; padding: 15px;
-  border-radius: 8px; border: 2px solid transparent;
-}
-.active-turn { border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
-.graveyard { font-size: 24px; min-height: 50px; margin-top: 10px; display: flex; flex-wrap: wrap; }
+/* Third Image Colors: Tan and Brown */
+.light { background: #ecdab9; color: #5d4037; }
+.dark { background: #b58863; color: #5d4037; }
+.highlight { box-shadow: inset 0 0 0 5px rgba(255, 214, 10, 0.6); }
 
 /* Chat Box */
-#chat {
-  width: 250px; background: #134e3a; padding: 10px; border-radius: 8px;
+#chat-container {
+    margin-top: 20px; width: 300px; background: #134e3a; padding: 10px; border-radius: 8px;
 }
-#messages { height: 300px; overflow-y: auto; list-style: none; padding: 0; text-align: left; background: #0b2b21; margin-bottom: 5px; }
-#messages li { padding: 5px; border-bottom: 1px solid #1f6f54; font-size: 14px; }
+#messages { height: 100px; overflow-y: auto; list-style: none; padding: 0; background: #0b2b21; }
