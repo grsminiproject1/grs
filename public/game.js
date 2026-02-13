@@ -3,7 +3,7 @@ const game = new Chess();
 const room = location.pathname.split("/")[2];
 
 let myName = "";
-let players = { w: "White", b: "Black" };
+let players = { w: "Waiting...", b: "Waiting..." };
 let selectedSquare = null;
 let validMoves = [];
 
@@ -12,23 +12,23 @@ const symbols = {
     P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
 };
 
-function startGame() {
-    myName = document.getElementById("userNameInput").value || "Anonymous";
-    document.getElementById("name-modal").style.display = "none";
+// Handle Name Entry
+window.onload = () => {
+    myName = prompt("Enter your name:") || "Player";
     socket.emit("joinRoom", { room, name: myName });
-    drawBoard();
-}
+};
 
 socket.on("playerUpdate", (data) => {
     players = data;
-    document.getElementById("name-w").innerText = players.w || "Waiting...";
-    document.getElementById("name-b").innerText = players.b || "Waiting...";
+    updateUI();
 });
 
 function drawBoard() {
     const boardDiv = document.getElementById("board");
     boardDiv.innerHTML = "";
-    const boardState = game.board();
+    
+    // Use the engine's board state to fix missing pieces
+    const boardState = game.board(); 
 
     boardState.forEach((row, r) => {
         row.forEach((piece, c) => {
@@ -37,7 +37,10 @@ function drawBoard() {
             sq.className = `square ${(r + c) % 2 === 0 ? "light" : "dark"}`;
             
             if (validMoves.includes(squareName)) sq.classList.add("highlight");
-            if (piece) sq.textContent = symbols[piece.color === "w" ? piece.type.toUpperCase() : piece.type];
+
+            if (piece) {
+                sq.textContent = symbols[piece.color === "w" ? piece.type.toUpperCase() : piece.type];
+            }
 
             sq.onclick = () => onSquareClick(squareName);
             boardDiv.appendChild(sq);
@@ -56,7 +59,7 @@ function onSquareClick(square) {
         const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
         if (move) {
             socket.emit("move", { fen: game.fen(), lastMove: move });
-            updateCaptured(move);
+            addCapturedPiece(move);
         }
         selectedSquare = null;
         validMoves = [];
@@ -64,31 +67,29 @@ function onSquareClick(square) {
     drawBoard();
 }
 
-function updateCaptured(move) {
+function addCapturedPiece(move) {
     if (!move.captured) return;
-    // If White (w) captured, it goes to White's side (capBlack list)
-    const target = move.color === "w" ? "capBlack" : "capWhite";
-    const symbol = symbols[move.color === "w" ? move.captured : move.captured.toUpperCase()];
-    document.getElementById(target).innerHTML += `<span>${symbol}</span>`;
+    // If white moves, black piece is captured
+    const side = move.color === 'w' ? 'capWhite' : 'capBlack';
+    const symbol = symbols[move.color === 'w' ? move.captured : move.captured.toUpperCase()];
+    document.getElementById(side).innerHTML += `<span>${symbol}</span>`;
 }
 
 function updateUI() {
     const turn = game.turn();
-    const isCheck = game.in_check();
+    document.getElementById("name-w").innerText = players.w;
+    document.getElementById("name-b").innerText = players.b;
+    document.getElementById("status").innerText = `${turn === 'w' ? players.w : players.b}'s Turn`;
     
-    // Highlight active player panel
-    document.getElementById("panel-w").classList.toggle("active-turn", turn === "w");
-    document.getElementById("panel-b").classList.toggle("active-turn", turn === "b");
-
-    let statusText = `${players[turn]}'s Turn`;
-    if (game.in_checkmate()) statusText = "CHECKMATE! " + (turn === 'w' ? players.b : players.w) + " Wins!";
-    else if (isCheck) statusText += " (IN CHECK)";
-    
-    document.getElementById("status").innerText = statusText;
+    // Highlight side panel of whose turn it is
+    document.getElementById("side-w").classList.toggle("active-turn", turn === 'w');
+    document.getElementById("side-b").classList.toggle("active-turn", turn === 'b');
 }
 
 socket.on("move", (data) => {
     game.load(data.fen);
-    updateCaptured(data.lastMove);
+    if(data.lastMove) addCapturedPiece(data.lastMove);
     drawBoard();
 });
+
+drawBoard();
