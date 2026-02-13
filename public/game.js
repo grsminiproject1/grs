@@ -1,96 +1,129 @@
-const socket = io();
-const room = location.pathname.split("/")[2];
-socket.emit("joinRoom", room);
+const roomId = location.pathname.split("/")[2];
+socket.emit("joinRoom", roomId);
 
 const game = new Chess();
 
-const boardDiv = document.getElementById("board");
-const statusDiv = document.getElementById("status");
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
 const capWhite = document.getElementById("capWhite");
 const capBlack = document.getElementById("capBlack");
 
 let selectedSquare = null;
-let validMoves = [];
+let legalMoves = [];
 
-const symbols = {
-  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
-  P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
+/* Unicode chess pieces */
+const PIECES = {
+  p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚",
+  P: "♙", R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔"
 };
 
+/* Draw board */
 function drawBoard() {
-  boardDiv.innerHTML = "";
+  boardEl.innerHTML = "";
   const board = game.board();
 
-  board.forEach((row, r) => {
-    row.forEach((piece, c) => {
-      const sq = document.createElement("div");
-      const file = "abcdefgh"[c];
-      const rank = 8 - r;
-      const square = file + rank;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const squareDiv = document.createElement("div");
+      const squareName = "abcdefgh"[c] + (8 - r);
 
-      sq.className = `square ${(r+c)%2===0?"light":"dark"}`;
-      if (validMoves.includes(square)) sq.classList.add("highlight");
+      squareDiv.className =
+        "square " + ((r + c) % 2 === 0 ? "light" : "dark");
 
-      if (piece) sq.textContent = symbols[piece.color === "w" ? piece.type.toUpperCase() : piece.type];
+      if (legalMoves.includes(squareName)) {
+        squareDiv.classList.add("highlight");
+      }
 
-      sq.onclick = () => onSquareClick(square);
-      boardDiv.appendChild(sq);
-    });
-  });
+      const piece = board[r][c];
+      if (piece) {
+        const key =
+          piece.color === "w"
+            ? piece.type.toUpperCase()
+            : piece.type;
+        squareDiv.textContent = PIECES[key];
+      }
+
+      squareDiv.onclick = () => onSquareClick(squareName);
+      boardEl.appendChild(squareDiv);
+    }
+  }
 
   updateStatus();
 }
 
+/* Handle square click */
 function onSquareClick(square) {
   if (!selectedSquare) {
     const piece = game.get(square);
     if (!piece || piece.color !== game.turn()) return;
 
     selectedSquare = square;
-    validMoves = game.moves({ square, verbose: true }).map(m => m.to);
+    legalMoves = game.moves({ square, verbose: true }).map(m => m.to);
   } else {
-    if (validMoves.includes(square)) {
+    if (legalMoves.includes(square)) {
       const move = game.move({
         from: selectedSquare,
         to: square,
         promotion: "q"
       });
 
-      socket.emit("move", game.fen());
-      updateCaptured(move);
+      if (move) {
+        updateCaptured(move);
+        socket.emit("move", game.fen());
+      }
     }
 
     selectedSquare = null;
-    validMoves = [];
+    legalMoves = [];
   }
+
   drawBoard();
 }
 
+/* Update captured pieces */
 function updateCaptured(move) {
-  if (!move || !move.captured) return;
-  const el = move.color === "w" ? capWhite : capBlack;
-  el.textContent += symbols[move.color === "w"
-    ? move.captured
-    : move.captured.toUpperCase()];
+  if (!move.captured) return;
+
+  const target =
+    move.color === "w" ? capWhite : capBlack;
+
+  const symbol =
+    move.color === "w"
+      ? PIECES[move.captured]
+      : PIECES[move.captured.toUpperCase()];
+
+  target.textContent += symbol;
 }
 
+/* Update status text */
 function updateStatus() {
   let text = "";
+
   if (game.in_checkmate()) {
-    text = `Checkmate! ${game.turn()==="w"?"Black":"White"} wins`;
+    text =
+      "Checkmate! " +
+      (game.turn() === "w" ? "Black" : "White") +
+      " wins";
   } else if (game.in_stalemate()) {
-    text = "Stalemate! Draw";
+    text = "Stalemate — Draw";
   } else if (game.in_check()) {
-    text = `${game.turn()==="w"?"White":"Black"} in CHECK`;
+    text =
+      (game.turn() === "w" ? "White" : "Black") +
+      " is in CHECK";
   } else {
-    text = `${game.turn()==="w"?"White":"Black"}'s Turn`;
+    text =
+      (game.turn() === "w" ? "White" : "Black") +
+      "'s Turn";
   }
-  statusDiv.textContent = text;
+
+  statusEl.textContent = text;
 }
 
+/* Receive opponent move */
 socket.on("move", fen => {
   game.load(fen);
   drawBoard();
 });
 
+/* Initial render */
 drawBoard();
