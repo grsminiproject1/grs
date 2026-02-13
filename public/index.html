@@ -1,23 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Online Chess</title>
-  <link rel="stylesheet" href="style.css">
+    <title>Online Chess</title>
 </head>
-<body>
+<body style="text-align:center">
 
-<h1>♟ Online Chess</h1>
-
-<input id="playerName" placeholder="Enter your name" />
-<br><br>
+<h2>Online Chess</h2>
 <button onclick="createRoom()">Create Room</button>
 
 <script>
 function createRoom() {
-  const name = document.getElementById("playerName").value.trim();
-  if (!name) return alert("Enter your name");
-  sessionStorage.setItem("playerName", name);
-  window.location.href = "/create";
+    window.location.href = "/room/" + crypto.randomUUID();
 }
 </script>
 
