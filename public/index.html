@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html>
-<head><title>Chess Lobby</title></head>
-<body style="text-align:center; background:#0b2b21; color:white; font-family:sans-serif; padding-top:100px;">
-    <h1>Online Chess</h1>
-    <button style="padding:15px 30px; cursor:pointer;" onclick="createRoom()">Create New Game</button>
-    <script>
-        function createRoom() {
-            const id = Math.random().toString(36).substring(2, 9);
-            window.location.href = `/room/${id}`;
-        }
-    </script>
+<head>
+  <title>Online Chess</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>♟ Online Chess</h1>
+
+<input id="playerName" placeholder="Enter your name" />
+<br><br>
+<button onclick="createRoom()">Create Room</button>
+
+<script>
+function createRoom() {
+  const name = document.getElementById("playerName").value.trim();
+  if (!name) return alert("Enter your name");
+  sessionStorage.setItem("playerName", name);
+  window.location.href = "/create";
+}
+</script>
+
 </body>
 </html>
