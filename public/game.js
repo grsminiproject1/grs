@@ -1,114 +1,108 @@
 const socket = io();
+const room = location.pathname.split("/")[2];
+const name = sessionStorage.getItem("playerName") || "Player";
+
+socket.emit("joinRoom", { room, name });
+
 const game = new Chess();
-const room = window.location.pathname.split("/")[2];
 
-// UI Elements
-const boardDiv = document.getElementById("board");
-const statusDiv = document.getElementById("status");
-const roomLinkInput = document.getElementById("roomLink");
-const msgInput = document.getElementById("msgInput");
-const messagesDiv = document.getElementById("messages");
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
+const whiteCap = document.getElementById("whiteCaptured");
+const blackCap = document.getElementById("blackCaptured");
+const messages = document.getElementById("messages");
 
-let selectedSquare = null;
-let validMoves = [];
-let myName = prompt("Enter your name:") || "Player";
+let selected = null;
+let moves = [];
 
-// Share link
-roomLinkInput.value = window.location.href;
-
-// Symbols Map
-const symbols = {
-    p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
-    P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
+const PIECES = {
+  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
+  P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
 };
 
-socket.emit("joinRoom", { room, name: myName });
+function draw() {
+  boardEl.innerHTML = "";
+  const board = game.board();
 
-// --- GAME LOGIC ---
+  board.forEach((row, r) => {
+    row.forEach((piece, c) => {
+      const sq = document.createElement("div");
+      const square = "abcdefgh"[c] + (8 - r);
+      sq.className = "square " + ((r + c) % 2 ? "dark" : "light");
+      if (moves.includes(square)) sq.classList.add("highlight");
 
-function drawBoard() {
-    boardDiv.innerHTML = "";
-    const currentBoard = game.board();
+      if (piece) {
+        const key = piece.color === "w" ? piece.type.toUpperCase() : piece.type;
+        sq.textContent = PIECES[key];
+      }
 
-    currentBoard.forEach((row, r) => {
-        row.forEach((piece, c) => {
-            const sq = document.createElement("div");
-            const squareName = String.fromCharCode(97 + c) + (8 - r);
-            
-            sq.className = `square ${(r + c) % 2 === 0 ? "light" : "dark"}`;
-            if (validMoves.includes(squareName)) sq.classList.add("highlight");
-
-            if (piece) {
-                sq.textContent = symbols[piece.color === 'w' ? piece.type.toUpperCase() : piece.type];
-            }
-
-            sq.onclick = () => onSquareClick(squareName);
-            boardDiv.appendChild(sq);
-        });
+      sq.onclick = () => click(square);
+      boardEl.appendChild(sq);
     });
-    updateStatus();
+  });
+
+  updateStatus();
 }
 
-function onSquareClick(square) {
-    if (!selectedSquare) {
-        const piece = game.get(square);
-        if (!piece || piece.color !== game.turn()) return;
-        selectedSquare = square;
-        validMoves = game.moves({ square, verbose: true }).map(m => m.to);
-    } else {
-        const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
-        if (move) {
-            socket.emit("move", { fen: game.fen(), lastMove: move });
-            handleCaptures(move);
-        }
-        selectedSquare = null;
-        validMoves = [];
+function click(square) {
+  if (!selected) {
+    const p = game.get(square);
+    if (!p || p.color !== game.turn()) return;
+    selected = square;
+    moves = game.moves({ square, verbose: true }).map(m => m.to);
+  } else {
+    if (moves.includes(square)) {
+      const move = game.move({ from: selected, to: square, promotion: "q" });
+      if (move) {
+        updateCaptured(move);
+        socket.emit("move", game.fen());
+      }
     }
-    drawBoard();
+    selected = null;
+    moves = [];
+  }
+  draw();
 }
 
-function handleCaptures(move) {
-    if (!move.captured) return;
-    const targetId = move.color === 'w' ? 'capWhite' : 'capBlack';
-    const symbol = symbols[move.color === 'w' ? move.captured : move.captured.toUpperCase()];
-    document.getElementById(targetId).innerHTML += `<span>${symbol}</span>`;
+function updateCaptured(move) {
+  if (!move.captured) return;
+  const target = move.color === "w" ? whiteCap : blackCap;
+  const sym = move.color === "w"
+    ? PIECES[move.captured]
+    : PIECES[move.captured.toUpperCase()];
+  target.textContent += sym;
 }
 
 function updateStatus() {
-    const turn = game.turn();
-    statusDiv.innerText = `${turn === 'w' ? "White" : "Black"}'s Turn`;
-    document.getElementById("side-w").classList.toggle("active", turn === 'w');
-    document.getElementById("side-b").classList.toggle("active", turn === 'b');
+  statusEl.textContent =
+    game.in_checkmate() ? "Checkmate!" :
+    game.in_check() ? `${game.turn() === "w" ? "White" : "Black"} in Check` :
+    `${name}'s turn (${game.turn() === "w" ? "White" : "Black"})`;
 }
 
-// --- NETWORK LOGIC ---
-
-socket.on("playerUpdate", (players) => {
-    document.getElementById("name-w").innerText = players.w || "Waiting...";
-    document.getElementById("name-b").innerText = players.b || "Waiting...";
+socket.on("move", fen => {
+  game.load(fen);
+  draw();
 });
 
-socket.on("move", (data) => {
-    game.load(data.fen);
-    if (data.lastMove) handleCaptures(data.lastMove);
-    drawBoard();
+socket.on("chat", msg => {
+  const li = document.createElement("li");
+  li.textContent = msg;
+  messages.appendChild(li);
 });
 
-// --- CHAT LOGIC ---
+socket.on("system", msg => {
+  const li = document.createElement("li");
+  li.textContent = msg;
+  messages.appendChild(li);
+});
 
-function sendChat() {
-    const text = msgInput.value;
-    if (text) {
-        socket.emit("chat", text);
-        msgInput.value = "";
-    }
+function sendMsg() {
+  const input = document.getElementById("msg");
+  if (input.value.trim()) {
+    socket.emit("chat", `${name}: ${input.value}`);
+    input.value = "";
+  }
 }
 
-socket.on("chat", (msg) => {
-    const p = document.createElement("p");
-    p.innerText = msg;
-    messagesDiv.appendChild(p);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-});
-
-drawBoard();
+draw();
