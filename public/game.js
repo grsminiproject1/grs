@@ -1,108 +1,111 @@
 const socket = io();
 const room = location.pathname.split("/")[2];
-const name = sessionStorage.getItem("playerName") || "Player";
+const playerName = sessionStorage.getItem("playerName") || "Player";
 
-socket.emit("joinRoom", { room, name });
+socket.emit("joinRoom", { room, name: playerName });
 
 const game = new Chess();
-
 const boardEl = document.getElementById("board");
 const statusEl = document.getElementById("status");
-const whiteCap = document.getElementById("whiteCaptured");
-const blackCap = document.getElementById("blackCaptured");
-const messages = document.getElementById("messages");
 
-let selected = null;
-let moves = [];
+let playerColor = null;
+let selectedSquare = null;
+let legalMoves = [];
 
 const PIECES = {
-  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
-  P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
+  wp: "♙", wr: "♖", wn: "♘", wb: "♗", wq: "♕", wk: "♔",
+  bp: "♟", br: "♜", bn: "♞", bb: "♝", bq: "♛", bk: "♚"
 };
 
-function draw() {
+/* ---------- BOARD RENDER ---------- */
+function drawBoard() {
   boardEl.innerHTML = "";
+
   const board = game.board();
 
-  board.forEach((row, r) => {
-    row.forEach((piece, c) => {
-      const sq = document.createElement("div");
-      const square = "abcdefgh"[c] + (8 - r);
-      sq.className = "square " + ((r + c) % 2 ? "dark" : "light");
-      if (moves.includes(square)) sq.classList.add("highlight");
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const squareName = "abcdefgh"[c] + (8 - r);
+      const square = document.createElement("div");
 
+      square.className = `square ${(r + c) % 2 === 0 ? "light" : "dark"}`;
+      if (legalMoves.includes(squareName)) square.classList.add("highlight");
+
+      const piece = board[r][c];
       if (piece) {
-        const key = piece.color === "w" ? piece.type.toUpperCase() : piece.type;
-        sq.textContent = PIECES[key];
+        square.textContent = PIECES[piece.color + piece.type];
       }
 
-      sq.onclick = () => click(square);
-      boardEl.appendChild(sq);
-    });
-  });
+      square.onclick = () => onSquareClick(squareName);
+      boardEl.appendChild(square);
+    }
+  }
 
   updateStatus();
 }
 
-function click(square) {
-  if (!selected) {
-    const p = game.get(square);
-    if (!p || p.color !== game.turn()) return;
-    selected = square;
-    moves = game.moves({ square, verbose: true }).map(m => m.to);
+/* ---------- CLICK HANDLING ---------- */
+function onSquareClick(square) {
+  if (game.game_over()) return;
+
+  const piece = game.get(square);
+
+  if (!selectedSquare) {
+    if (!piece) return;
+    if (piece.color !== playerColor) return;
+    if (piece.color !== game.turn()) return;
+
+    selectedSquare = square;
+    legalMoves = game.moves({ square, verbose: true }).map(m => m.to);
   } else {
-    if (moves.includes(square)) {
-      const move = game.move({ from: selected, to: square, promotion: "q" });
-      if (move) {
-        updateCaptured(move);
-        socket.emit("move", game.fen());
-      }
+    if (legalMoves.includes(square)) {
+      game.move({ from: selectedSquare, to: square, promotion: "q" });
+      socket.emit("move", game.fen());
     }
-    selected = null;
-    moves = [];
+    selectedSquare = null;
+    legalMoves = [];
   }
-  draw();
+
+  drawBoard();
 }
 
-function updateCaptured(move) {
-  if (!move.captured) return;
-  const target = move.color === "w" ? whiteCap : blackCap;
-  const sym = move.color === "w"
-    ? PIECES[move.captured]
-    : PIECES[move.captured.toUpperCase()];
-  target.textContent += sym;
-}
-
+/* ---------- STATUS ---------- */
 function updateStatus() {
-  statusEl.textContent =
-    game.in_checkmate() ? "Checkmate!" :
-    game.in_check() ? `${game.turn() === "w" ? "White" : "Black"} in Check` :
-    `${name}'s turn (${game.turn() === "w" ? "White" : "Black"})`;
+  if (game.in_checkmate()) {
+    statusEl.textContent = "Checkmate!";
+  } else if (game.in_check()) {
+    statusEl.textContent = "Check!";
+  } else {
+    statusEl.textContent =
+      game.turn() === playerColor
+        ? `${playerName}'s turn`
+        : `Opponent's turn`;
+  }
 }
+
+/* ---------- SOCKET EVENTS ---------- */
+socket.on("assignColor", color => {
+  playerColor = color;
+  drawBoard();
+});
 
 socket.on("move", fen => {
   game.load(fen);
-  draw();
+  drawBoard();
 });
 
 socket.on("chat", msg => {
   const li = document.createElement("li");
   li.textContent = msg;
-  messages.appendChild(li);
+  document.getElementById("messages").appendChild(li);
 });
 
-socket.on("system", msg => {
-  const li = document.createElement("li");
-  li.textContent = msg;
-  messages.appendChild(li);
-});
-
+/* ---------- CHAT ---------- */
 function sendMsg() {
   const input = document.getElementById("msg");
-  if (input.value.trim()) {
-    socket.emit("chat", `${name}: ${input.value}`);
-    input.value = "";
-  }
+  if (!input.value.trim()) return;
+  socket.emit("chat", `${playerName}: ${input.value}`);
+  input.value = "";
 }
 
-draw();
+drawBoard();
