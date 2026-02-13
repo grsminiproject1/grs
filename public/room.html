@@ -1,32 +1,165 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Game Room</title>
+    <title>Multiplayer Chess</title>
+
+    <!-- Chessboard CSS -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.css" />
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 0;
+        }
+
+        #container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        #board {
+            width: 500px;
+        }
+
+        #status {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #chatBtn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        #chatBox {
+            position: fixed;
+            top: 60px;
+            right: 15px;
+            width: 300px;
+            height: 400px;
+            border: 1px solid black;
+            background: white;
+            display: none;
+            flex-direction: column;
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        #inputArea {
+            display: flex;
+        }
+
+        #inputArea input {
+            flex: 1;
+        }
+    </style>
 </head>
 <body>
 
-<h3>Game Room</h3>
+<button id="chatBtn" onclick="toggleChat()">Chat</button>
 
-<p>Share this link with your friend:</p>
-<input id="roomLink" readonly style="width:300px" />
+<div id="container">
+    <div id="board"></div>
+</div>
 
-<hr>
+<div id="status"></div>
 
-<ul id="messages"></ul>
-
-<input id="messageInput" placeholder="Type message..." />
-<button onclick="sendMessage()">Send</button>
+<div id="chatBox">
+    <button onclick="toggleChat()">Close</button>
+    <div id="messages"></div>
+    <div id="inputArea">
+        <input id="messageInput" placeholder="Type message..." />
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.js"></script>
 
 <script>
 const socket = io();
-
-// Get room ID from URL
 const roomId = window.location.pathname.split("/")[2];
-document.getElementById("roomLink").value = window.location.href;
 
 socket.emit("joinRoom", roomId);
+
+const game = new Chess();
+let board = null;
+
+function onDragStart(source, piece) {
+    if (game.game_over()) return false;
+
+    if ((game.turn() === 'w' && piece.startsWith('b')) ||
+        (game.turn() === 'b' && piece.startsWith('w'))) {
+        return false;
+    }
+}
+
+function onDrop(source, target) {
+    const move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q'
+    });
+
+    if (move === null) return 'snapback';
+
+    socket.emit("move", {
+        roomId: roomId,
+        move: move
+    });
+
+    updateStatus();
+}
+
+function onSnapEnd() {
+    board.position(game.fen());
+}
+
+function updateStatus() {
+    let status = "";
+
+    if (game.in_checkmate()) {
+        status = "Checkmate! Game Over";
+    } else if (game.in_check()) {
+        status = "Check!";
+    } else {
+        status = (game.turn() === 'w' ? "White" : "Black") + " to move";
+    }
+
+    document.getElementById("status").innerText = status;
+}
+
+board = Chessboard("board", {
+    draggable: true,
+    position: "start",
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd
+});
+
+socket.on("move", (move) => {
+    game.move(move);
+    board.position(game.fen());
+    updateStatus();
+});
+
+/* Chat */
+function toggleChat() {
+    const chat = document.getElementById("chatBox");
+    chat.style.display = chat.style.display === "flex" ? "none" : "flex";
+}
 
 function sendMessage() {
     const input = document.getElementById("messageInput");
@@ -37,10 +170,12 @@ function sendMessage() {
 }
 
 socket.on("chatMessage", (msg) => {
-    const li = document.createElement("li");
-    li.textContent = msg;
-    document.getElementById("messages").appendChild(li);
+    const div = document.createElement("div");
+    div.textContent = msg;
+    document.getElementById("messages").appendChild(div);
 });
+
+updateStatus();
 </script>
 
 </body>
