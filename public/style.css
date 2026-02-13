@@ -40,3 +40,6 @@ body {
     background: #111;
     padding: 10px;
 }
+.highlight {
+  background-color: yellow !important;
+}
