@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Multiplayer Chess</title>
+    <title>Create Chess Room</title>
 </head>
-<body>
+<body style="text-align:center">
 
-<h2>Multiplayer Chess</h2>
-<button onclick="createRoom()">Create Game</button>
+<h2>Online Chess</h2>
+<button onclick="createRoom()">Create Room</button>
 
 <script>
 function createRoom() {
-    window.location.href = "/create";
+    const id = crypto.randomUUID();
+    window.location.href = `/room/${id}`;
 }
 </script>
 

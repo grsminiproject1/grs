@@ -1,29 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Online Chess Room</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Chess Room</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<div id="top-bar">
-    <h3>Chess Game</h3>
-    <button id="chatToggle">Chat</button>
-</div>
+<h3>Chess Room</h3>
+<p>Share this link with opponent:</p>
+<input value="" id="roomLink" readonly />
 
-<div id="game-container">
+<div id="container">
     <div id="board"></div>
 
-    <div id="chatBox" class="hidden">
+    <div id="chat">
         <ul id="messages"></ul>
-        <input id="messageInput" placeholder="Message">
+        <input id="msg" placeholder="Message">
         <button onclick="sendMessage()">Send</button>
-        <button onclick="toggleChat()">Close</button>
     </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="chess.js"></script>
+<script src="/game.js"></script>
 
 </body>
 </html>
