@@ -1,19 +1,14 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Create Chess Room</title>
-</head>
-<body style="text-align:center">
-
-<h2>Online Chess</h2>
-<button onclick="createRoom()">Create Room</button>
-
-<script>
-function createRoom() {
-    const id = crypto.randomUUID();
-    window.location.href = `/room/${id}`;
-}
-</script>
-
+<head><title>Chess Lobby</title></head>
+<body style="text-align:center; background:#0b2b21; color:white; font-family:sans-serif; padding-top:100px;">
+    <h1>Online Chess</h1>
+    <button style="padding:15px 30px; cursor:pointer;" onclick="createRoom()">Create New Game</button>
+    <script>
+        function createRoom() {
+            const id = Math.random().toString(36).substring(2, 9);
+            window.location.href = `/room/${id}`;
+        }
+    </script>
 </body>
 </html>
