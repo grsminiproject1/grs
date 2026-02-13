@@ -1,49 +1,32 @@
-body {
-    margin: 0; background: #0b2b21; color: white;
-    font-family: 'Segoe UI', sans-serif;
-    display: flex; flex-direction: column; align-items: center;
+.main-game-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
 }
 
-#status {
-    margin: 20px; font-size: 24px; font-weight: bold; color: #ffd60a;
-}
-
-.main-container {
-    display: flex; align-items: flex-start; gap: 20px;
-}
-
-/* Side Panels for Names and Captured Pieces */
-.side-panel {
-    width: 140px; background: #134e3a; padding: 15px;
-    border-radius: 8px; border: 2px solid transparent;
-    min-height: 400px;
-}
-
-.active-turn { border-color: #ffd60a; box-shadow: 0 0 15px #ffd60a; }
-
-.graveyard {
-    display: flex; flex-wrap: wrap; font-size: 28px; margin-top: 10px;
-}
-
-/* Chess Board - Wood Aesthetic */
 #board {
-    display: grid; grid-template-columns: repeat(8, 70px);
-    border: 8px solid #3e2723; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: grid;
+    grid-template-columns: repeat(8, 65px);
+    border: 5px solid #3e2723;
 }
 
 .square {
-    width: 70px; height: 70px; display: flex;
-    justify-content: center; align-items: center;
-    font-size: 48px; cursor: pointer; user-select: none;
+    width: 65px; height: 65px;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 40px; cursor: pointer;
 }
 
-/* Third Image Colors: Tan and Brown */
-.light { background: #ecdab9; color: #5d4037; }
-.dark { background: #b58863; color: #5d4037; }
-.highlight { box-shadow: inset 0 0 0 5px rgba(255, 214, 10, 0.6); }
+.light { background: #ecdab9; }
+.dark { background: #b58863; }
+.highlight { box-shadow: inset 0 0 10px yellow; }
 
-/* Chat Box */
+.side-panel {
+    width: 150px; background: #134e3a; padding: 10px; border-radius: 5px;
+}
+.side-panel.active { border: 2px solid yellow; }
+
 #chat-container {
-    margin-top: 20px; width: 300px; background: #134e3a; padding: 10px; border-radius: 8px;
+    width: 400px; margin: 20px auto; background: #134e3a; padding: 10px;
 }
-#messages { height: 100px; overflow-y: auto; list-style: none; padding: 0; background: #0b2b21; }
+#messages { height: 150px; overflow-y: auto; background: #0b2b21; margin-bottom: 5px; text-align: left; padding: 5px;}
