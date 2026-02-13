@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess Pawn Movement</title>
+
+    <!-- Chessboard CSS -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.css" />
+
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+        }
+
+        #board {
+            width: 480px;
+            margin: 30px auto;
+        }
+
+        .highlight {
+            background: radial-gradient(circle, rgba(0,255,0,0.5) 30%, transparent 40%);
+        }
+    </style>
+</head>
+<body>
+
+<h2>Pawn Movement Demo</h2>
+
+<div id="board"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.js"></script>
+
+<script>
+const game = new Chess();
+let board = null;
+
+// Remove all highlights
+function removeHighlights() {
+    document.querySelectorAll('.square-55d63')
+        .forEach(sq => sq.classList.remove('highlight'));
+}
+
+// Highlight squares
+function highlightSquare(square) {
+    const el = document.querySelector(`.square-${square}`);
+    if (el) el.classList.add('highlight');
+}
+
+// When user clicks a piece
+function onMouseoverSquare(square, piece) {
+    removeHighlights();
+
+    if (!piece) return;
+
+    // Only show moves for pawns
+    if (!piece.includes('P')) return;
+
+    const moves = game.moves({
+        square: square,
+        verbose: true
+    });
+
+    moves.forEach(move => highlightSquare(move.to));
+}
+
+// When piece is dropped
+function onDrop(source, target) {
+    removeHighlights();
+
+    const move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q'
+    });
+
+    if (move === null) return 'snapback';
+}
+
+// Create board
+board = Chessboard('board', {
+    draggable: true,
+    position: 'start',
+    onMouseoverSquare: onMouseoverSquare,
+    onMouseoutSquare: removeHighlights,
+    onDrop: onDrop
+});
+</script>
+
+</body>
+</html>
