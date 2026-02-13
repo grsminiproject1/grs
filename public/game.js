@@ -1,140 +1,96 @@
 const socket = io();
 const room = location.pathname.split("/")[2];
 socket.emit("joinRoom", room);
-document.getElementById("roomLink").value = location.href;
 
-let board = [
-  ["br","bn","bb","bq","bk","bb","bn","br"],
-  ["bp","bp","bp","bp","bp","bp","bp","bp"],
-  ["--","--","--","--","--","--","--","--"],
-  ["--","--","--","--","--","--","--","--"],
-  ["--","--","--","--","--","--","--","--"],
-  ["--","--","--","--","--","--","--","--"],
-  ["wp","wp","wp","wp","wp","wp","wp","wp"],
-  ["wr","wn","wb","wq","wk","wb","wn","wr"]
-];
+const game = new Chess();
 
-let turn = "white";
-let selected = null;
+const boardDiv = document.getElementById("board");
+const statusDiv = document.getElementById("status");
+const capWhite = document.getElementById("capWhite");
+const capBlack = document.getElementById("capBlack");
+
+let selectedSquare = null;
 let validMoves = [];
 
-const pieces = {
-  wp:"♙",wr:"♖",wn:"♘",wb:"♗",wq:"♕",wk:"♔",
-  bp:"♟",br:"♜",bn:"♞",bb:"♝",bq:"♛",bk:"♚"
+const symbols = {
+  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
+  P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
 };
 
-function draw() {
-  const b = document.getElementById("board");
-  b.innerHTML = "";
-  for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
-    const d = document.createElement("div");
-    d.className = "cell " + ((r+c)%2?"black":"white");
-    if (validMoves.some(m=>m.r===r&&m.c===c)) d.classList.add("highlight");
-    d.innerText = pieces[board[r][c]] || "";
-    d.onclick = ()=>click(r,c);
-    b.appendChild(d);
-  }
-}
+function drawBoard() {
+  boardDiv.innerHTML = "";
+  const board = game.board();
 
-function click(r,c){
-  if (selected) {
-    if (validMoves.some(m=>m.r===r&&m.c===c)) move(selected.r,selected.c,r,c);
-    selected=null; validMoves=[]; draw(); return;
-  }
-  if (board[r][c]==="--") return;
-  if ((turn==="white" && board[r][c][0]!=="w") ||
-      (turn==="black" && board[r][c][0]!=="b")) return;
-  selected={r,c};
-  validMoves=getValidMoves(r,c);
-  draw();
-}
+  board.forEach((row, r) => {
+    row.forEach((piece, c) => {
+      const sq = document.createElement("div");
+      const file = "abcdefgh"[c];
+      const rank = 8 - r;
+      const square = file + rank;
 
-function move(sr,sc,tr,tc){
-  board[tr][tc]=board[sr][sc];
-  board[sr][sc]="--";
-  turn=turn==="white"?"black":"white";
-  socket.emit("move",{board,turn});
-  draw();
-}
+      sq.className = `square ${(r+c)%2===0?"light":"dark"}`;
+      if (validMoves.includes(square)) sq.classList.add("highlight");
 
-socket.on("move",data=>{
-  board=data.board; turn=data.turn; draw();
-});
+      if (piece) sq.textContent = symbols[piece.color === "w" ? piece.type.toUpperCase() : piece.type];
 
-function toggleChat(){
-  chat.hidden=!chat.hidden;
-}
-function sendMsg(){
-  socket.emit("chat",msg.value);
-  msg.value="";
-}
-socket.on("chat",m=>{
-  const li=document.createElement("li");
-  li.innerText=m;
-  messages.appendChild(li);
-});
-
-/* ======= CHESS RULES ======= */
-
-function getValidMoves(r,c,test=board,skip=false){
-  let p=test[r][c],color=p[0],t=p[1],m=[];
-  const push=(rr,cc)=>{ if(rr>=0&&rr<8&&cc>=0&&cc<8&&(test[rr][cc]=="--"||test[rr][cc][0]!=color)) m.push({r:rr,c:cc}); };
-
-  if(t=="p"){
-    let d=color=="w"?-1:1;
-    if(test[r+d]&&test[r+d][c]=="--") push(r+d,c);
-    [-1,1].forEach(x=>{
-      if(test[r+d]&&test[r+d][c+x]&&test[r+d][c+x][0]&&!test[r+d][c+x].startsWith(color))
-        push(r+d,c+x);
+      sq.onclick = () => onSquareClick(square);
+      boardDiv.appendChild(sq);
     });
-  }
-  if(t=="r"||t=="q"){
-    [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
-      for(let i=1;i<8;i++){
-        let rr=r+d[0]*i,cc=c+d[1]*i;
-        if(rr<0||rr>7||cc<0||cc>7) break;
-        if(test[rr][cc]=="--") m.push({r:rr,c:cc});
-        else { if(test[rr][cc][0]!=color)m.push({r:rr,c:cc}); break; }
-      }
-    });
-  }
-  if(t=="b"||t=="q"){
-    [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(d=>{
-      for(let i=1;i<8;i++){
-        let rr=r+d[0]*i,cc=c+d[1]*i;
-        if(rr<0||rr>7||cc<0||cc>7) break;
-        if(test[rr][cc]=="--") m.push({r:rr,c:cc});
-        else { if(test[rr][cc][0]!=color)m.push({r:rr,c:cc}); break; }
-      }
-    });
-  }
-  if(t=="n"){
-    [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]
-    .forEach(d=>push(r+d[0],c+d[1]));
-  }
-  if(t=="k"){
-    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)
-      if(dr||dc)push(r+dr,c+dc);
-  }
-
-  if(skip) return m;
-  return m.filter(x=>{
-    let copy=JSON.parse(JSON.stringify(test));
-    copy[x.r][x.c]=copy[r][c];
-    copy[r][c]="--";
-    return !inCheck(color,copy);
   });
+
+  updateStatus();
 }
 
-function inCheck(color,b){
-  let kr,kc;
-  for(let r=0;r<8;r++)for(let c=0;c<8;c++)
-    if(b[r][c]==color+"k"){kr=r;kc=c;}
-  for(let r=0;r<8;r++)for(let c=0;c<8;c++)
-    if(b[r][c][0]&&b[r][c][0]!=color)
-      if(getValidMoves(r,c,b,true).some(m=>m.r==kr&&m.c==kc))
-        return true;
-  return false;
+function onSquareClick(square) {
+  if (!selectedSquare) {
+    const piece = game.get(square);
+    if (!piece || piece.color !== game.turn()) return;
+
+    selectedSquare = square;
+    validMoves = game.moves({ square, verbose: true }).map(m => m.to);
+  } else {
+    if (validMoves.includes(square)) {
+      const move = game.move({
+        from: selectedSquare,
+        to: square,
+        promotion: "q"
+      });
+
+      socket.emit("move", game.fen());
+      updateCaptured(move);
+    }
+
+    selectedSquare = null;
+    validMoves = [];
+  }
+  drawBoard();
 }
 
-draw();
+function updateCaptured(move) {
+  if (!move || !move.captured) return;
+  const el = move.color === "w" ? capWhite : capBlack;
+  el.textContent += symbols[move.color === "w"
+    ? move.captured
+    : move.captured.toUpperCase()];
+}
+
+function updateStatus() {
+  let text = "";
+  if (game.in_checkmate()) {
+    text = `Checkmate! ${game.turn()==="w"?"Black":"White"} wins`;
+  } else if (game.in_stalemate()) {
+    text = "Stalemate! Draw";
+  } else if (game.in_check()) {
+    text = `${game.turn()==="w"?"White":"Black"} in CHECK`;
+  } else {
+    text = `${game.turn()==="w"?"White":"Black"}'s Turn`;
+  }
+  statusDiv.textContent = text;
+}
+
+socket.on("move", fen => {
+  game.load(fen);
+  drawBoard();
+});
+
+drawBoard();
