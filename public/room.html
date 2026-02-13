@@ -1,42 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chess Room</title>
-  <link rel="stylesheet" href="/style.css">
+    <title>Chess Room</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<div id="top-bar">
-  <button onclick="copyLink()">🔗 Invite</button>
-  <span id="status"></span>
-</div>
+<h3>Chess Room</h3>
+<input id="roomLink" readonly>
 
-<div id="game-area">
+<div id="container">
+    <div id="board"></div>
 
-  <div class="captured" id="blackCaptured"></div>
-
-  <div id="board"></div>
-
-  <div class="captured" id="whiteCaptured"></div>
-
-</div>
-
-<div id="chat">
-  <ul id="messages"></ul>
-  <input id="msg" placeholder="Chat..." />
-  <button onclick="sendMsg()">Send</button>
+    <div id="chat">
+        <ul id="messages"></ul>
+        <input id="msg" placeholder="Message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/chess.js"></script>
 <script src="/game.js"></script>
-
-<script>
-function copyLink() {
-  navigator.clipboard.writeText(window.location.href);
-  alert("Link copied!");
-}
-</script>
-
 </body>
 </html>
