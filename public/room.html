@@ -1,73 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Online Chess Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/style.css" />
-</head>
+<div id="name-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:100; display:flex; justify-content:center; align-items:center;">
+    <div style="background:#134e3a; padding:30px; border-radius:10px;">
+        <h3>Enter Your Name</h3>
+        <input id="userNameInput" type="text" placeholder="Your Name..." />
+        <button onclick="startGame()">Start Playing</button>
+    </div>
+</div>
 
-<body>
-
-  <!-- TOP BAR -->
-  <div id="top-bar">
-    <button onclick="toggleChat()">💬 Chat</button>
+<div id="top-bar">
     <input id="roomLink" readonly />
-  </div>
+    <span id="status">Waiting for players...</span>
+</div>
 
-  <!-- STATUS -->
-  <div id="status"></div>
+<div class="game-wrapper">
+    <div id="panel-b" class="player-panel">
+        <h4 id="name-b">Black</h4>
+        <div id="capWhite" class="graveyard"></div> </div>
 
-  <!-- BOARD -->
-  <div id="board"></div>
+    <div id="board"></div>
 
-  <!-- CAPTURED PIECES -->
-  <div id="captured">
-    <div><b>White Captured:</b> <span id="capWhite"></span></div>
-    <div><b>Black Captured:</b> <span id="capBlack"></span></div>
-  </div>
+    <div id="panel-w" class="player-panel">
+        <h4 id="name-w">White</h4>
+        <div id="capBlack" class="graveyard"></div> </div>
 
-  <!-- CHAT -->
-  <div id="chat" hidden>
-    <ul id="messages"></ul>
-    <input id="msg" placeholder="Type message..." />
-    <button onclick="sendMsg()">Send</button>
-    <button onclick="toggleChat()">Close</button>
-  </div>
+    <div id="chat">
+        <ul id="messages"></ul>
+        <input id="msg" placeholder="Chat..." />
+        <button onclick="sendMsg()">Send</button>
+    </div>
+</div>
 
-  <!-- SOCKET.IO (MUST COME FIRST) -->
-  <script src="/socket.io/socket.io.js"></script>
-
-  <!-- CREATE SOCKET GLOBALLY -->
-  <script>
-    const socket = io();
-
-    // Shareable link
-    document.getElementById("roomLink").value = window.location.href;
-
-    function toggleChat() {
-      chat.hidden = !chat.hidden;
-    }
-
-    function sendMsg() {
-      if (msg.value.trim() !== "") {
-        socket.emit("chat", msg.value);
-        msg.value = "";
-      }
-    }
-
-    socket.on("chat", m => {
-      const li = document.createElement("li");
-      li.innerText = m;
-      messages.appendChild(li);
-    });
-  </script>
-
-  <!-- CHESS ENGINE -->
-  <script src="/chess.js"></script>
-
-  <!-- GAME LOGIC -->
-  <script src="/game.js"></script>
-
-</body>
-</html>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script src="/game.js"></script>
