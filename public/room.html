@@ -1,39 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chess Room</title>
-    <link rel="stylesheet" href="/style.css">
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <title>Chess Room</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div id="top-bar" style="padding:10px;">
-        <input id="roomLink" readonly style="width:300px;">
-        <span id="status">Connecting...</span>
-    </div>
 
-    <div class="main-game-container">
-        <div id="side-b" class="side-panel">
-            <h3 id="name-b">Waiting for Black...</h3>
-            <div id="capBlack" class="graveyard"></div>
-        </div>
+<div id="top-bar">
+  <button onclick="copyLink()">🔗 Invite</button>
+  <span id="status"></span>
+</div>
 
-        <div id="board"></div>
+<div id="game-area">
 
-        <div id="side-w" class="side-panel">
-            <h3 id="name-w">Waiting for White...</h3>
-            <div id="capWhite" class="graveyard"></div>
-        </div>
-    </div>
+  <div class="captured" id="blackCaptured"></div>
 
-    <div id="chat-container">
-        <div id="messages"></div>
-        <div style="display:flex;">
-            <input id="msgInput" placeholder="Type a message..." style="flex:1;">
-            <button onclick="sendChat()">Send</button>
-        </div>
-    </div>
+  <div id="board"></div>
 
-    <script src="/game.js"></script>
+  <div class="captured" id="whiteCaptured"></div>
+
+</div>
+
+<div id="chat">
+  <ul id="messages"></ul>
+  <input id="msg" placeholder="Chat..." />
+  <button onclick="sendMsg()">Send</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/chess.js"></script>
+<script src="/game.js"></script>
+
+<script>
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href);
+  alert("Link copied!");
+}
+</script>
+
 </body>
 </html>
