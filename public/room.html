@@ -1,27 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Chess Room</title>
+    <meta charset="UTF-8">
+    <title>Online Chess Room</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<h3>Chess Room</h3>
-<p>Share this link with opponent:</p>
-<input value="" id="roomLink" readonly />
+    <!-- TOP BAR -->
+    <div id="top-bar">
+        <button onclick="toggleChat()">💬 Chat</button>
+        <input id="roomLink" readonly />
+    </div>
 
-<div id="container">
+    <!-- GAME STATUS -->
+    <div id="status"></div>
+
+    <!-- CHESS BOARD -->
     <div id="board"></div>
 
-    <div id="chat">
-        <ul id="messages"></ul>
-        <input id="msg" placeholder="Message">
-        <button onclick="sendMessage()">Send</button>
+    <!-- CAPTURED PIECES -->
+    <div id="captured">
+        <div>
+            <strong>White Captured:</strong>
+            <span id="capWhite"></span>
+        </div>
+        <div>
+            <strong>Black Captured:</strong>
+            <span id="capBlack"></span>
+        </div>
     </div>
-</div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/game.js"></script>
+    <!-- CHAT PANEL -->
+    <div id="chat" hidden>
+        <ul id="messages"></ul>
+        <input id="msg" placeholder="Type a message..." />
+        <button onclick="sendMsg()">Send</button>
+        <button onclick="toggleChat()">Close</button>
+    </div>
+
+    <!-- SOCKET.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <!-- CHESS RULE ENGINE -->
+    <script src="/chess.js"></script>
+
+    <!-- YOUR GAME LOGIC -->
+    <script src="/game.js"></script>
+
+    <!-- CHAT + ROOM LINK LOGIC -->
+    <script>
+        document.getElementById("roomLink").value = window.location.href;
+
+        function toggleChat() {
+            const chat = document.getElementById("chat");
+            chat.hidden = !chat.hidden;
+        }
+
+        function sendMsg() {
+            const input = document.getElementById("msg");
+            if (input.value.trim() !== "") {
+                socket.emit("chat", input.value);
+                input.value = "";
+            }
+        }
+
+        socket.on("chat", msg => {
+            const li = document.createElement("li");
+            li.innerText = msg;
+            document.getElementById("messages").appendChild(li);
+        });
+    </script>
 
 </body>
 </html>
