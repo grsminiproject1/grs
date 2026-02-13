@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Room</title>
+</head>
+<body>
+
+<h3>Game Room</h3>
+
+<p>Share this link with your friend:</p>
+<input id="roomLink" readonly style="width:300px" />
+
+<hr>
+
+<ul id="messages"></ul>
+
+<input id="messageInput" placeholder="Type message..." />
+<button onclick="sendMessage()">Send</button>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+const socket = io();
+
+// Get room ID from URL
+const roomId = window.location.pathname.split("/")[2];
+document.getElementById("roomLink").value = window.location.href;
+
+socket.emit("joinRoom", roomId);
+
+function sendMessage() {
+    const input = document.getElementById("messageInput");
+    if (input.value.trim() !== "") {
+        socket.emit("chatMessage", input.value);
+        input.value = "";
+    }
+}
+
+socket.on("chatMessage", (msg) => {
+    const li = document.createElement("li");
+    li.textContent = msg;
+    document.getElementById("messages").appendChild(li);
+});
+</script>
+
+</body>
+</html>
