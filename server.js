@@ -1,39 +1,25 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const { v4: uuidv4 } = require("uuid");
-
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-
-app.use(express.static("public"));
-
-app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/public/index.html");
-});
-
-app.get("/room/:roomId", (req, res) => {
-    res.sendFile(__dirname + "/public/room.html");
-});
+const roomPlayers = {}; // { roomId: { w: name, b: name } }
 
 io.on("connection", (socket) => {
+    socket.on("joinRoom", ({ room, name }) => {
+        socket.join(room);
+        socket.roomId = room;
 
-    socket.on("joinRoom", (roomId) => {
-        socket.join(roomId);
-        socket.roomId = roomId;
-        socket.to(roomId).emit("playerJoined");
-    });
+        if (!roomPlayers[room]) roomPlayers[room] = { w: null, b: null };
+        
+        // Assign color
+        if (!roomPlayers[room].w) roomPlayers[room].w = name;
+        else if (!roomPlayers[room].b) roomPlayers[room].b = name;
 
-    socket.on("chatMessage", (msg) => {
-        io.to(socket.roomId).emit("chatMessage", msg);
+        io.to(room).emit("playerUpdate", roomPlayers[room]);
+        io.to(room).emit("chat", `${name} joined the game.`);
     });
 
     socket.on("move", (data) => {
         socket.to(socket.roomId).emit("move", data);
     });
 
+    socket.on("chat", (msg) => {
+        io.to(socket.roomId).emit("chat", msg);
+    });
 });
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Server running on", PORT));
