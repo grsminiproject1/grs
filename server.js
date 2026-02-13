@@ -5,7 +5,15 @@ const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// 🔥 IMPORTANT FIX
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    },
+    transports: ["websocket", "polling"]
+});
 
 app.use(express.static("public"));
 
@@ -21,6 +29,7 @@ app.get("/room/:roomId", (req, res) => {
 });
 
 io.on("connection", (socket) => {
+    console.log("New user connected:", socket.id);
 
     socket.on("joinRoom", (roomId) => {
         socket.join(roomId);
@@ -29,13 +38,14 @@ io.on("connection", (socket) => {
     });
 
     socket.on("chatMessage", (msg) => {
-        io.to(socket.roomId).emit("chatMessage", msg);
+        if (socket.roomId) {
+            io.to(socket.roomId).emit("chatMessage", msg);
+        }
     });
 
     socket.on("disconnect", () => {
-        console.log("User disconnected");
+        console.log("User disconnected:", socket.id);
     });
-
 });
 
 const PORT = process.env.PORT || 3000;
