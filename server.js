@@ -9,32 +9,24 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-/* =====================
-   ROOM + AUTH LOGIC
-===================== */
 const rooms = {};
 
+// ===== generate room + code =====
 function generateRoomId() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let id = "";
+    let roomId = "";
     for (let i = 0; i < 6; i++) {
-        id += chars[Math.floor(Math.random() * chars.length)];
+        roomId += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return id;
+    return roomId;
 }
 
 function generateCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-/* =====================
-   ROUTES
-===================== */
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public/index.html"));
-});
-
-app.get("/create-room", (req, res) => {
+// ===== create game =====
+app.get("/create-game", (req, res) => {
     let roomId;
     do {
         roomId = generateRoomId();
@@ -50,15 +42,19 @@ app.get("/create-room", (req, res) => {
     res.json({ roomId, code });
 });
 
+// ===== routes =====
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/index.html"));
+});
+
 app.get("/room/:roomId", (req, res) => {
     res.sendFile(path.join(__dirname, "public/room.html"));
 });
 
-/* =====================
-   SOCKET.IO
-===================== */
-io.on("connection", socket => {
+// ===== sockets =====
+io.on("connection", (socket) => {
 
+    // 🔐 verify join
     socket.on("verifyAndJoin", ({ roomId, code }) => {
         const room = rooms[roomId];
 
@@ -68,12 +64,12 @@ io.on("connection", socket => {
         }
 
         if (room.code !== code) {
-            socket.emit("verificationFailed", "Invalid verification code");
+            socket.emit("verificationFailed", "Invalid code");
             return;
         }
 
         if (room.players.length >= 2) {
-            socket.emit("verificationFailed", "Room is full");
+            socket.emit("verificationFailed", "Room full");
             return;
         }
 
@@ -81,17 +77,23 @@ io.on("connection", socket => {
         socket.roomId = roomId;
         room.players.push(socket.id);
 
+        // assign color
+        const color = room.players.length === 1 ? "w" : "b";
+        socket.emit("color", color);
+
         socket.emit("verificationSuccess");
         socket.to(roomId).emit("system", "Opponent joined");
     });
 
+    // ♟ chess move
     socket.on("move", data => {
         if (socket.roomId)
             socket.to(socket.roomId).emit("move", data);
     });
 
+    // 💬 chat
     socket.on("chat", msg => {
-        if (socket.roomId && msg)
+        if (socket.roomId)
             io.to(socket.roomId).emit("chat", msg);
     });
 
@@ -101,12 +103,9 @@ io.on("connection", socket => {
         const room = rooms[socket.roomId];
         if (room) {
             room.players = room.players.filter(id => id !== socket.id);
-            socket.to(socket.roomId).emit("system", "Opponent left");
-
-            if (room.players.length === 0) {
-                delete rooms[socket.roomId]; // cleanup
-            }
         }
+
+        socket.to(socket.roomId).emit("system", "Opponent left");
     });
 });
 
