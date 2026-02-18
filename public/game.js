@@ -1,31 +1,7 @@
 const socket = io();
 
-/* =====================
-   ROOM + AUTH
-===================== */
-const roomId = location.pathname.split("/")[2];
-const params = new URLSearchParams(location.search);
-const code = params.get("code");
-
-if (!code) {
-    alert("Verification code required");
-    location.href = "/";
-}
-
-socket.emit("verifyAndJoin", { roomId, code });
-
-socket.on("verificationFailed", msg => {
-    alert(msg);
-    location.href = "/";
-});
-
-/* =====================
-   GAME LOGIC
-===================== */
 const boardDiv = document.getElementById("board");
 const messages = document.getElementById("messages");
-
-document.getElementById("roomLink").value = location.href;
 
 const PIECES = {
     wp:"♙", wr:"♖", wn:"♘", wb:"♗", wq:"♕", wk:"♔",
@@ -45,9 +21,16 @@ let board = [
 
 let selected = null;
 let turn = "w";
+let myColor = null;
 
 const inBounds = (r,c)=>r>=0&&r<8&&c>=0&&c<8;
 
+/* ===== SOCKET COLOR ===== */
+socket.on("color", c=>{
+    myColor = c;
+});
+
+/* ===== DRAW BOARD ===== */
 function drawBoard() {
     boardDiv.innerHTML="";
     board.forEach((row,r)=>{
@@ -61,61 +44,80 @@ function drawBoard() {
     });
 }
 
+/* ===== CLICK ===== */
 function clickSquare(r,c){
     clearMarks();
 
+    // move attempt
     if(selected){
         if(getMoves(selected.r,selected.c)
             .some(m=>m[0]===r&&m[1]===c)){
+
             board[r][c]=board[selected.r][selected.c];
             board[selected.r][selected.c]="--";
-            turn=turn==="w"?"b":"w";
-            socket.emit("move",{ board, turn });
+
+            turn = turn==="w" ? "b" : "w";
+
+            socket.emit("move",{board,turn});
         }
         selected=null;
         drawBoard();
         return;
     }
 
-    if(board[r][c]!=="--" && board[r][c][0]===turn){
+    // select piece (only own color + turn)
+    if(board[r][c]!=="--" &&
+       board[r][c][0]===turn &&
+       board[r][c][0]===myColor){
+
         selected={r,c};
+        boardDiv.children[r*8+c].classList.add("selected");
         markMoves(getMoves(r,c));
     }
 }
 
+/* ===== MOVES ===== */
 function getMoves(r,c){
     const p=board[r][c];
     const t=p[0], k=p[1];
     if(k==="p") return pawn(r,c,t);
     if(k==="r") return slide(r,c,[[1,0],[-1,0],[0,1],[0,-1]]);
     if(k==="b") return slide(r,c,[[1,1],[1,-1],[-1,1],[-1,-1]]);
-    if(k==="q") return slide(r,c,[
-        [1,0],[-1,0],[0,1],[0,-1],
-        [1,1],[1,-1],[-1,1],[-1,-1]
-    ]);
+    if(k==="q") return slide(r,c,[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]);
     if(k==="n") return knight(r,c);
     if(k==="k") return king(r,c);
 }
 
+/* ===== PAWN ===== */
 function pawn(r,c,t){
-    const d=t==="w"?-1:1, s=t==="w"?6:1, m=[];
-    if(inBounds(r+d,c)&&board[r+d][c]==="--") m.push([r+d,c]);
-    if(r===s&&board[r+d][c]==="--"&&board[r+2*d][c]==="--") m.push([r+2*d,c]);
+    const d=t==="w"?-1:1;
+    const s=t==="w"?6:1;
+    const m=[];
+
+    if(inBounds(r+d,c)&&board[r+d][c]==="--")
+        m.push([r+d,c]);
+
+    if(r===s&&board[r+d][c]==="--"&&board[r+2*d][c]==="--")
+        m.push([r+2*d,c]);
+
     for(let dc of [-1,1]){
         let nr=r+d,nc=c+dc;
-        if(inBounds(nr,nc)&&board[nr][nc]!=="--"&&board[nr][nc][0]!==t)
+        if(inBounds(nr,nc)&&
+           board[nr][nc]!=="--"&&
+           board[nr][nc][0]!==t)
             m.push([nr,nc]);
     }
     return m;
 }
 
+/* ===== SLIDERS ===== */
 function slide(r,c,dirs){
     const m=[], t=board[r][c][0];
     for(let[d1,d2] of dirs){
         let nr=r+d1,nc=c+d2;
         while(inBounds(nr,nc)){
             if(board[nr][nc]==="--") m.push([nr,nc]);
-            else {
+            else{
                 if(board[nr][nc][0]!==t) m.push([nr,nc]);
                 break;
             }
@@ -125,15 +127,16 @@ function slide(r,c,dirs){
     return m;
 }
 
+/* ===== KNIGHT ===== */
 function knight(r,c){
     const d=[[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
-    return d
-        .map(x=>[r+x[0],c+x[1]])
+    return d.map(x=>[r+x[0],c+x[1]])
         .filter(p=>inBounds(p[0],p[1]) &&
-            (board[p[0]][p[1]]==="--" ||
-             board[p[0]][p[1]][0]!==board[r][c][0]));
+        (board[p[0]][p[1]]==="--" ||
+         board[p[0]][p[1]][0]!==board[r][c][0]));
 }
 
+/* ===== KING ===== */
 function king(r,c){
     const m=[];
     for(let dr=-1;dr<=1;dr++)
@@ -141,15 +144,18 @@ function king(r,c){
             if(dr||dc){
                 let nr=r+dr,nc=c+dc;
                 if(inBounds(nr,nc)&&
-                    (board[nr][nc]==="--" ||
-                     board[nr][nc][0]!==board[r][c][0]))
+                   (board[nr][nc]==="--"||
+                    board[nr][nc][0]!==board[r][c][0]))
                     m.push([nr,nc]);
             }
     return m;
 }
 
+/* ===== MARK ===== */
 function markMoves(m){
-    m.forEach(([r,c])=>boardDiv.children[r*8+c].classList.add("move"));
+    m.forEach(([r,c])=>{
+        boardDiv.children[r*8+c].classList.add("move");
+    });
 }
 
 function clearMarks(){
@@ -157,22 +163,18 @@ function clearMarks(){
         .forEach(e=>e.classList.remove("move","selected"));
 }
 
-/* =====================
-   SOCKET EVENTS
-===================== */
+/* ===== SOCKET SYNC ===== */
 socket.on("move", data=>{
     board=data.board;
     turn=data.turn;
     drawBoard();
 });
 
-/* =====================
-   CHAT
-===================== */
+/* ===== CHAT ===== */
 function sendMessage(){
     const i=document.getElementById("msg");
-    if(i.value.trim())
-        socket.emit("chat", i.value);
+    if(!i.value.trim()) return;
+    socket.emit("chat", i.value);
     i.value="";
 }
 
@@ -189,4 +191,5 @@ socket.on("system", msg=>{
     messages.appendChild(li);
 });
 
+/* ===== START ===== */
 drawBoard();
