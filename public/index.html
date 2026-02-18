@@ -6,11 +6,42 @@
 <body style="text-align:center">
 
 <h2>Online Chess</h2>
+
 <button onclick="createRoom()">Create Room</button>
 
+<br><br>
+
+<h3>Join Room</h3>
+<input id="roomInput" placeholder="Room ID">
+<input id="codeInput" placeholder="6-digit Code">
+<button onclick="joinRoom()">Join</button>
+
 <script>
-function createRoom() {
-    window.location.href = "/room/" + crypto.randomUUID();
+async function createRoom() {
+    const res = await fetch("/create-room");
+    const data = await res.json();
+
+    alert(
+        "Room ID: " + data.roomId +
+        "\nCode: " + data.code +
+        "\n\nShare both with your friend."
+    );
+
+    window.location.href =
+        "/room/" + data.roomId + "?code=" + data.code;
+}
+
+function joinRoom() {
+    const room = document.getElementById("roomInput").value;
+    const code = document.getElementById("codeInput").value;
+
+    if (!room || !code) {
+        alert("Enter Room ID and Code");
+        return;
+    }
+
+    window.location.href =
+        "/room/" + room + "?code=" + code;
 }
 </script>
 
