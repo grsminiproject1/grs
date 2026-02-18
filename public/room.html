@@ -1,30 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess Room</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<h3>Chess Room</h3>
+
+<div id="container">
+    <div id="board"></div>
+
+    <div id="chat">
+        <ul id="messages"></ul>
+        <input id="msg" placeholder="Message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
-const socket = io();
+/* ===== SINGLE SOCKET ===== */
+window.socket = io();
 
 const roomId = window.location.pathname.split("/")[2];
-const params = new URLSearchParams(window.location.search);
-const code = params.get("code");
+const urlParams = new URLSearchParams(window.location.search);
+const code = urlParams.get("code");
 
 if (!code) {
     alert("Verification code required");
     window.location.href = "/";
 }
 
+/* verify first */
 socket.emit("verifyAndJoin", { roomId, code });
 
-socket.on("verificationSuccess", () => {
-    startChess(); // load chess after auth
-});
-
-socket.on("verificationFailed", (msg) => {
+socket.on("verificationFailed", msg=>{
     alert(msg);
-    window.location.href = "/";
+    window.location.href="/";
 });
 
-function startChess(){
-    const script = document.createElement("script");
-    script.src = "/game.js";
-    document.body.appendChild(script);
-}
+socket.on("verificationSuccess", ()=>{
+    console.log("Joined room");
+});
 </script>
+
+<script src="/game.js"></script>
+
+</body>
+</html>
