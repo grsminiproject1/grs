@@ -1,25 +1,30 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-const roomId = location.pathname.split("/")[2];
-const params = new URLSearchParams(location.search);
+
+const roomId = window.location.pathname.split("/")[2];
+const params = new URLSearchParams(window.location.search);
 const code = params.get("code");
 
 if (!code) {
     alert("Verification code required");
-    location.href = "/";
+    window.location.href = "/";
 }
 
 socket.emit("verifyAndJoin", { roomId, code });
 
 socket.on("verificationSuccess", () => {
-    console.log("Verified and joined room");
+    startChess(); // load chess after auth
 });
 
-socket.on("verificationFailed", msg => {
+socket.on("verificationFailed", (msg) => {
     alert(msg);
-    location.href = "/";
+    window.location.href = "/";
 });
-</script>
 
-<script src="/game.js"></script>
+function startChess(){
+    const script = document.createElement("script");
+    script.src = "/game.js";
+    document.body.appendChild(script);
+}
+</script>
