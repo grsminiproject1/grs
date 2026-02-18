@@ -9,7 +9,7 @@
 <h3>Chess Room</h3>
 <input id="roomLink" readonly>
 
-<div id="container" style="display:none;">
+<div id="container">
     <div id="board"></div>
 
     <div id="chat">
@@ -29,26 +29,19 @@ const code = params.get("code");
 
 if (!code) {
     alert("Verification code required");
-    window.location.href = "/";
+    location.href = "/";
 }
 
 socket.emit("verifyAndJoin", { roomId, code });
 
-socket.on("verificationSuccess", () => {
-    document.getElementById("roomLink").value = location.href;
-    document.getElementById("container").style.display = "flex";
-
-    // load game only after verification
-    const script = document.createElement("script");
-    script.src = "/game.js";
-    document.body.appendChild(script);
-});
-
 socket.on("verificationFailed", msg => {
     alert(msg);
-    window.location.href = "/";
+    location.href = "/";
 });
 </script>
+
+<!-- LOAD GAME NORMALLY (AS BEFORE) -->
+<script src="/game.js"></script>
 
 </body>
 </html>
