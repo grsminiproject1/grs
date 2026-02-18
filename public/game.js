@@ -1,7 +1,7 @@
 const socket = io();
 const roomId = location.pathname.split("/")[2];
 document.getElementById("roomLink").value = location.href;
-socket.emit("joinRoom", roomId);
+//socket.emit("joinRoom", roomId);
 
 const boardDiv = document.getElementById("board");
 const messages = document.getElementById("messages");
