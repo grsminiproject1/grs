@@ -9,29 +9,31 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-/* ---------------- AUTH STORAGE ---------------- */
-const rooms = {}; // { roomId: { code: "123456" } }
+/* =====================
+   ROOM + AUTH LOGIC
+===================== */
+const rooms = {};
 
 function generateRoomId() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let roomId = "";
+    let id = "";
     for (let i = 0; i < 6; i++) {
-        roomId += chars.charAt(Math.floor(Math.random() * chars.length));
+        id += chars[Math.floor(Math.random() * chars.length)];
     }
-    return roomId;
+    return id;
 }
 
 function generateCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-/* ---------------- ROUTES ---------------- */
-
+/* =====================
+   ROUTES
+===================== */
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
-/* Create room */
 app.get("/create-room", (req, res) => {
     let roomId;
     do {
@@ -39,21 +41,24 @@ app.get("/create-room", (req, res) => {
     } while (rooms[roomId]);
 
     const code = generateCode();
-    rooms[roomId] = { code };
+
+    rooms[roomId] = {
+        code,
+        players: []
+    };
 
     res.json({ roomId, code });
 });
 
-/* Serve room page */
 app.get("/room/:roomId", (req, res) => {
     res.sendFile(path.join(__dirname, "public/room.html"));
 });
 
-/* ---------------- SOCKET ---------------- */
-
+/* =====================
+   SOCKET.IO
+===================== */
 io.on("connection", socket => {
 
-    /* AUTH VERIFY */
     socket.on("verifyAndJoin", ({ roomId, code }) => {
         const room = rooms[roomId];
 
@@ -63,31 +68,45 @@ io.on("connection", socket => {
         }
 
         if (room.code !== code) {
-            socket.emit("verificationFailed", "Invalid code");
+            socket.emit("verificationFailed", "Invalid verification code");
+            return;
+        }
+
+        if (room.players.length >= 2) {
+            socket.emit("verificationFailed", "Room is full");
             return;
         }
 
         socket.join(roomId);
         socket.roomId = roomId;
+        room.players.push(socket.id);
 
         socket.emit("verificationSuccess");
         socket.to(roomId).emit("system", "Opponent joined");
     });
 
-    /* MOVE (UNCHANGED) */
     socket.on("move", data => {
-        socket.to(socket.roomId).emit("move", data);
+        if (socket.roomId)
+            socket.to(socket.roomId).emit("move", data);
     });
 
-    /* CHAT (UNCHANGED) */
     socket.on("chat", msg => {
-        if (!msg || !socket.roomId) return;
-        io.to(socket.roomId).emit("chat", msg);
+        if (socket.roomId && msg)
+            io.to(socket.roomId).emit("chat", msg);
     });
 
     socket.on("disconnect", () => {
-        if (socket.roomId)
+        if (!socket.roomId) return;
+
+        const room = rooms[socket.roomId];
+        if (room) {
+            room.players = room.players.filter(id => id !== socket.id);
             socket.to(socket.roomId).emit("system", "Opponent left");
+
+            if (room.players.length === 0) {
+                delete rooms[socket.roomId]; // cleanup
+            }
+        }
     });
 });
 
