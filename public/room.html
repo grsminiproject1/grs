@@ -1,30 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Chess Room</title>
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body>
-
-<h3>Chess Room</h3>
-<input id="roomLink" readonly>
-
-<div id="container">
-    <div id="board"></div>
-
-    <div id="chat">
-        <ul id="messages"></ul>
-        <input id="msg" placeholder="Message">
-        <button onclick="sendMessage()">Send</button>
-    </div>
-</div>
-
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
 const socket = io();
 const roomId = location.pathname.split("/")[2];
-const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(location.search);
 const code = params.get("code");
 
 if (!code) {
@@ -34,14 +12,14 @@ if (!code) {
 
 socket.emit("verifyAndJoin", { roomId, code });
 
+socket.on("verificationSuccess", () => {
+    console.log("Verified and joined room");
+});
+
 socket.on("verificationFailed", msg => {
     alert(msg);
     location.href = "/";
 });
 </script>
 
-<!-- LOAD GAME NORMALLY (AS BEFORE) -->
 <script src="/game.js"></script>
-
-</body>
-</html>
