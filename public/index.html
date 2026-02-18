@@ -1,25 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Online Chess</title>
+    <title>Multiplayer Chess</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial;
+            margin-top: 60px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input {
+            padding: 10px;
+            margin: 6px;
+            width: 200px;
+            font-size: 14px;
+        }
+    </style>
 </head>
-<body style="text-align:center">
+<body>
 
-<h2>Online Chess</h2>
-<button onclick="createRoom()">Create Room</button>
+<h2>Multiplayer Chess</h2>
+
+<button onclick="createGame()">Create New Game</button>
+
+<br><br>
+<h3>OR</h3>
+
+<h3>Join Game</h3>
+
+<input id="roomId" placeholder="Room ID"><br>
+<input id="code" placeholder="6-digit Code"><br>
+
+<button onclick="joinGame()">Join Game</button>
 
 <script>
-async function createRoom() {
-    const res = await fetch("/create-room");
-    const data = await res.json();
+async function createGame() {
+    try {
+        const res = await fetch("/create-game");
+        const data = await res.json();
 
-    alert(
-        "Room ID: " + data.roomId +
-        "\nVerification Code: " + data.code +
-        "\n\nShare this code with your opponent."
-    );
+        alert(
+            "Room ID: " + data.roomId +
+            "\nCode: " + data.code +
+            "\n\nShare both with friend"
+        );
 
-    window.location.href = "/room/" + data.roomId + "?code=" + data.code;
+        window.location.href =
+            "/room/" + data.roomId + "?code=" + data.code;
+
+    } catch (e) {
+        alert("Server not reachable");
+        console.error(e);
+    }
+}
+
+function joinGame() {
+    const roomId = document.getElementById("roomId").value;
+    const code = document.getElementById("code").value;
+
+    if (!roomId || !code) {
+        alert("Enter Room ID and Code");
+        return;
+    }
+
+    window.location.href =
+        "/room/" + roomId + "?code=" + code;
 }
 </script>
 
