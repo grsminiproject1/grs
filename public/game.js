@@ -1,4 +1,5 @@
-const socket = io();
+const socket = window.socket;
+
 
 const boardDiv = document.getElementById("board");
 const messages = document.getElementById("messages");
